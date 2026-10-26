@@ -1,4 +1,4 @@
-import type { Contract, Customer, Installment, Payment, Vehicle } from "@/types/domain";
+import type { Contract, Installment, Payment, Vehicle } from "@/types/domain";
 import { installmentRemaining } from "./allocation";
 import { daysBetween, type ISODate } from "./dates";
 import { round2, sum, toHalalas, toRiyals } from "./money";

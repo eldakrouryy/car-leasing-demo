@@ -60,7 +60,7 @@ export interface AgingRow {
 export function getAging(contracts: Contract[], today: ISODate): AgingRow[] {
   const rows: Record<OverdueBucket, AgingRow> = Object.fromEntries(
     OVERDUE_BUCKETS.map((b) => [b, { bucket: b, count: 0, amount: 0, contractIds: [] }]),
-  ) as Record<OverdueBucket, AgingRow>;
+  ) as unknown as Record<OverdueBucket, AgingRow>;
   for (const c of contracts.filter(isPortfolioContract)) {
     const b = getContractBalances(c, today);
     const bucket = overdueBucket(b.daysOverdue);

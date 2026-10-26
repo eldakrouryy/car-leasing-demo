@@ -112,39 +112,21 @@ type Plan =
 
 function buildPlans(rng: Rng): Plan[] {
   const plans: Plan[] = [];
-  // عقود تم تمليكها أولاً — أصحابها يعودون بعقود جديدة (عملاء متكررون)
-  plans.push({ kind: "owned", months: 24, endOffset: -120 });
-  plans.push({ kind: "owned", months: 36, endOffset: -290 });
   // العميل التجريبي: 60% مسدد (18 من 30)، القسط القادم بعد يومين
   plans.push({ kind: "active", months: 30, nextOffset: 2, elapsed: 18, demo: true });
-  // 3 عقود تنتهي خلال 3 أيام
-  [1, 2, 3].forEach((endOffset) => plans.push({ kind: "ending", months: rng.pick([24, 36]), endOffset }));
-  // 4 أقساط إضافية مستحقة خلال 1–3 أيام (المجموع 8 مع التجريبي والمنتهية)
-  [1, 1, 2, 3].forEach((nextOffset) => plans.push({ kind: "active", months: rng.pick([36, 48, 60]), nextOffset }));
-  // 5 أقساط مستحقة اليوم
-  for (let i = 0; i < 5; i++) plans.push({ kind: "active", months: rng.pick([24, 36, 48, 60]), nextOffset: 0 });
-  // 17 عقداً نشطاً عادياً
-  for (let i = 0; i < 17; i++) {
-    plans.push({
-      kind: "active",
-      months: rng.pick([24, 36, 36, 48, 60]),
-      nextOffset: rng.int(5, 27),
-      prepayToday: i < 3,
-      partialNext: i === 5 || i === 11,
-    });
-  }
-  // 6 متأخرة على الفئات الثلاث
-  [3, 6, 12, 24, 41, 68].forEach((daysOverdue, i) =>
-    plans.push({ kind: "overdue", months: rng.pick([36, 48, 60]), daysOverdue, partial: i === 2 || i === 4 }),
-  );
-  // 2 مسدد بانتظار التمليك + 2 تم التمليك
+  // عقدان ينتهيان خلال 3 أيام (قسطهما الأخير مستحق خلال 3 أيام)
+  [1, 2].forEach((endOffset) => plans.push({ kind: "ending", months: rng.pick([24, 36]), endOffset }));
+  // قسط مستحق اليوم
+  plans.push({ kind: "active", months: rng.pick([24, 36, 48, 60]), nextOffset: 0 });
+  // عقدان نشطان عاديان
+  plans.push({ kind: "active", months: 36, nextOffset: 12 });
+  plans.push({ kind: "active", months: 48, nextOffset: 21 });
+  // متأخران: 1–7 و 8–30 يوماً
+  [5, 16].forEach((daysOverdue) => plans.push({ kind: "overdue", months: rng.pick([36, 48, 60]), daysOverdue }));
+  // مسدد بانتظار التمليك
   plans.push({ kind: "paid_off", months: 24, endOffset: -9 });
-  plans.push({ kind: "paid_off", months: 36, endOffset: -38 });
-  // 3 بانتظار الاعتماد
-  [0, -1, -2].forEach((createdOffset) => plans.push({ kind: "pending", months: rng.pick([36, 48, 60]), createdOffset }));
-  // 2 مفسوخة
-  plans.push({ kind: "terminated", months: 36, createdOffset: -480, paidCount: 9 });
-  plans.push({ kind: "terminated", months: 48, createdOffset: -360, paidCount: 5 });
+  // بانتظار الاعتماد
+  plans.push({ kind: "pending", months: 48, createdOffset: -1 });
   return plans;
 }
 
@@ -288,7 +270,6 @@ export function generateSeed(today: ISODate): Database {
   /* ---- العقود ---- */
   const contracts: Contract[] = [];
   const payments: Payment[] = [];
-  let contractSeq = 0;
 
   const methods: PaymentMethod[] = ["bank_transfer", "bank_transfer", "sadad", "mada", "cash", "sadad"];
 
@@ -368,7 +349,6 @@ export function generateSeed(today: ISODate): Database {
     const installments: Installment[] = generateSchedule({ terms, firstDueDate, idPrefix: cid });
     const endDate = installments[installments.length - 1].dueDate;
     const createdBy = rng.pick(SALES_IDS);
-    contractSeq += 1;
 
     const contract: Contract = {
       id: cid,
@@ -550,7 +530,7 @@ export function generateSeed(today: ISODate): Database {
   if (expiredDoc) expiredDoc.expiresAt = addDaysISO(today, -6);
 
   // ---- عملاء بدون عقود (عملاء محتملون) ----
-  while (customers.length < 60) {
+  while (customers.length < 10) {
     customers.push(makeCustomer(addDaysISO(today, -rng.int(1, 90)), { resident: rng.chance(0.25), female: rng.chance(0.2) }));
   }
 
@@ -568,9 +548,9 @@ export function generateSeed(today: ISODate): Database {
   if (firstTerminated) firstTerminated.needsInspection = true;
 
   // متاحة (منها 3 أصبحت متاحة حديثاً ← تنبيه VEHICLE_READY للمبيعات)
-  for (let i = 0; i < 6; i++) vehicleReadyBy(addDaysISO(today, i < 3 ? -i - 1 : -rng.int(10, 40)), [0, 1, 3, 9, 10, 2][i]);
+  for (let i = 0; i < 2; i++) vehicleReadyBy(addDaysISO(today, -i - 1), [0, 1][i]);
   // قيد التجهيز
-  for (let i = 0; i < 3; i++) {
+  for (let i = 0; i < 0; i++) {
     const p = addDaysISO(today, -rng.int(4, 12));
     const v = makeVehicle(p);
     pushHistory(v, "in_purchase", p, "u-proc");
@@ -580,7 +560,7 @@ export function generateSeed(today: ISODate): Database {
     vehicles.push(v);
   }
   // قيد الشراء
-  for (let i = 0; i < 2; i++) {
+  for (let i = 0; i < 0; i++) {
     const p = addDaysISO(today, -rng.int(0, 3));
     const v = makeVehicle(p);
     v.expenses = [];
