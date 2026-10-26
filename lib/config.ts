@@ -1,0 +1,20 @@
+/** إعدادات العلامة والمنتج — تغيير الاسم من هنا فقط */
+export const appConfig = {
+  brandKey: "milk",
+  contractPrefix: "MLK",
+  receiptPrefix: "RCPT",
+  vatRate: 0.15,
+  minMonths: 12,
+  maxMonths: 60,
+  monthOptions: [12, 24, 36, 48, 60] as const,
+  defaultMonths: 36,
+  defaultDownPaymentRatio: 0.2,
+  companyPhone: "+966920001234",
+  companyWhatsapp: "966920001234",
+  sadadBillerCode: "301",
+  iban: "SA03 8000 0000 6080 1016 7519",
+  apiBaseUrl: process.env.NEXT_PUBLIC_API_BASE_URL ?? "",
+  storageKey: "milk-demo-db-v1",
+  sessionKey: "milk-session-v1",
+  roleCookie: "milk_role",
+} as const;
